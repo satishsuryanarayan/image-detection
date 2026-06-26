@@ -1,8 +1,0 @@
-<configuration>
-    <!-- Keep expected exception-path tests from printing application stack traces. -->
-    <logger name="com.heb.imagedetection" level="OFF"/>
-
-    <root level="WARN">
-        <appender-ref ref="CONSOLE"/>
-    </root>
-</configuration>

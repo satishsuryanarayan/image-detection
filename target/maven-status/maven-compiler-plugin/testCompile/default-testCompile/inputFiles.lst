@@ -1,8 +1,0 @@
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/config/DetectorConfigurationTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/config/OpenApiConfigurationTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/controller/ImageControllerTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/detector/ImaggaObjectDetectionServiceTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/detector/MockObjectDetectionServiceTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/entity/DetectedObjectEntityTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/exception/GlobalExceptionHandlerTest.java
-/Users/satishsuryanarayan/Workspace/image-detection/src/test/java/com/heb/imagedetection/service/ImageServiceTest.java

@@ -1,0 +1,23 @@
+.DS_Store
+
+# Maven / Java build output
+target/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Local environment and secrets
+.env
+.env.*
+secrets/
+src/main/resources/application-local.yml
+
+# Logs
+*.log
+
+# OS/editor temp files
+*.swp
+*.swo
