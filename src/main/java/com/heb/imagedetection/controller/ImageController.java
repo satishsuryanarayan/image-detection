@@ -3,8 +3,8 @@ package com.heb.imagedetection.controller;
 import com.heb.imagedetection.dto.ApiErrorResponse;
 import com.heb.imagedetection.dto.CreateImageRequest;
 import com.heb.imagedetection.dto.ImageResponse;
+import com.heb.imagedetection.dto.PagedImageResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,6 +12,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.heb.imagedetection.service.ImageService;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +26,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * REST entry point for creating image records, listing/searching stored images, and loading one image by id.
@@ -58,15 +60,18 @@ public class ImageController {
     }
 
     @GetMapping
-    @Operation(summary = "List or search images", description = "Returns all stored images when the query is missing or blank, or filters images by any requested detected object name when the objects query parameter is provided.")
+    @Operation(summary = "List or search images", description = "Returns a paginated list of stored images when the query is missing or blank, or filters images by any requested detected object name when the objects query parameter is provided.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Images returned successfully", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ImageResponse.class)))),
+            @ApiResponse(responseCode = "200", description = "Images returned successfully", content = @Content(schema = @Schema(implementation = PagedImageResponse.class))),
             @ApiResponse(responseCode = "400", description = "Invalid objects query parameter", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    public ResponseEntity<List<ImageResponse>> getImages(@RequestParam(required = false) String objects) {
-        log.info("Received request to list/search images with objects='{}'", objects);
-        return ResponseEntity.ok(imageService.getImages(objects));
+    public ResponseEntity<PagedImageResponse> getImages(
+            @RequestParam(required = false) String objects,
+            @ParameterObject @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        log.info("Received request to list/search images with objects='{}' page={} size={}", objects, pageable.getPageNumber(), pageable.getPageSize());
+        return ResponseEntity.ok(imageService.getImages(objects, pageable));
     }
 
     @GetMapping("/{imageId}")

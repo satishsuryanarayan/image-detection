@@ -3,10 +3,14 @@ package com.heb.imagedetection.service;
 import com.heb.imagedetection.detector.ObjectDetectionService;
 import com.heb.imagedetection.dto.CreateImageRequest;
 import com.heb.imagedetection.dto.ImageResponse;
+import com.heb.imagedetection.dto.PagedImageResponse;
 import com.heb.imagedetection.entity.ImageEntity;
 import com.heb.imagedetection.exception.ImageNotFoundException;
 import com.heb.imagedetection.repository.ImageRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +29,7 @@ class ImageServiceTest {
     private final ImageRepository imageRepository = mock(ImageRepository.class);
     private final ObjectDetectionService objectDetectionService = mock(ObjectDetectionService.class);
     private final ImageService imageService = new ImageService(imageRepository, objectDetectionService);
+    private final Pageable pageable = PageRequest.of(0, 20);
 
     @Test
     void shouldTrimProvidedLabelAndSkipDetectionWhenDisabled() {
@@ -59,7 +64,7 @@ class ImageServiceTest {
     void shouldRejectObjectsQueryWithNoUsableValues() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> imageService.getImages(" , , ")
+                () -> imageService.getImages(" , , ", pageable)
         );
 
         assertEquals("objects query parameter must contain at least one object name", exception.getMessage());
@@ -67,13 +72,14 @@ class ImageServiceTest {
 
     @Test
     void shouldNormalizeObjectSearchTermsBeforeRepositoryLookup() {
-        when(imageRepository.findImageIdsByDetectedObjectNames(List.of("dog", "cat"))).thenReturn(List.of());
+        when(imageRepository.findImageIdsByDetectedObjectNames(List.of("dog", "cat"), pageable)).thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        List<ImageResponse> responses = imageService.getImages(" Dog, cat, DOG ");
+        PagedImageResponse response = imageService.getImages(" Dog, cat, DOG ", pageable);
 
-        assertTrue(responses.isEmpty());
-        verify(imageRepository).findImageIdsByDetectedObjectNames(List.of("dog", "cat"));
-        verify(imageRepository, never()).findAllByIdInOrderByCreatedAtDesc(any());
+        assertTrue(response.content().isEmpty());
+        assertEquals(0, response.totalElements());
+        verify(imageRepository).findImageIdsByDetectedObjectNames(List.of("dog", "cat"), pageable);
+        verify(imageRepository, never()).findAllByIdIn(any());
     }
 
     @Test

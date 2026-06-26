@@ -15,9 +15,9 @@ Spring Boot REST API for ingesting image URLs, optionally detecting objects, per
 - `POST /images` to save an image URL with an optional label
 - automatic label generation when label is omitted
 - optional object detection using a pluggable detection service
-- `GET /images` to list all saved images
+- `GET /images` to list all saved images with pagination
 - `GET /images/{imageId}` to fetch one image
-- `GET /images?objects=dog,car` to filter by detected object names
+- `GET /images?objects=dog,car` to filter by detected object names with pagination
 - centralized error handling with appropriate HTTP status codes
 - integration tests using Spring Boot Test and MockMvc
 
@@ -56,12 +56,35 @@ Response:
 ```
 
 ### List images
-`GET /images`
+`GET /images?page=0&size=20`
+
+Response:
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "imageUrl": "https://example.com/dog-park.jpg",
+      "label": "Park photo",
+      "detectionEnabled": true,
+      "createdAt": "2026-06-23T14:00:00Z",
+      "detectedObjects": ["dog"]
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "first": true,
+  "last": true
+}
+```
 
 ### Search by objects
-`GET /images?objects=dog,car`
+`GET /images?objects=dog,car&page=0&size=20`
 
 Search uses **match-any semantics**: an image is returned if it contains at least one of the requested object names.
+Pagination is zero-based and defaults to `page=0`, `size=20`, sorted by `createdAt` descending.
 
 ### Get image by id
 `GET /images/{imageId}`

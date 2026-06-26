@@ -3,10 +3,14 @@ package com.heb.imagedetection.service;
 import com.heb.imagedetection.detector.ObjectDetectionService;
 import com.heb.imagedetection.dto.CreateImageRequest;
 import com.heb.imagedetection.dto.ImageResponse;
+import com.heb.imagedetection.dto.PagedImageResponse;
 import com.heb.imagedetection.entity.DetectedObjectEntity;
 import com.heb.imagedetection.entity.ImageEntity;
 import com.heb.imagedetection.exception.ImageNotFoundException;
 import com.heb.imagedetection.repository.ImageRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,6 +21,9 @@ import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Coordinates image creation, search, and response shaping.
@@ -59,10 +66,10 @@ public class ImageService {
     }
 
     @Transactional(readOnly = true)
-    public List<ImageResponse> getImages(String objects) {
+    public PagedImageResponse getImages(String objects, Pageable pageable) {
         if (!StringUtils.hasText(objects)) {
-            log.info("Listing all stored images because no object filter was provided");
-            return imageRepository.findAll().stream().map(this::toResponse).toList();
+            log.info("Listing stored images because no object filter was provided: page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
+            return toPagedResponse(imageRepository.findAllImageIds(pageable), pageable);
         }
 
         // Normalize user input so matching stays case-insensitive while preserving an index-friendly query.
@@ -77,18 +84,36 @@ public class ImageService {
             throw new IllegalArgumentException("objects query parameter must contain at least one object name");
         }
 
-        log.info("Searching images by detected objects {}", normalizedObjects);
+        log.info("Searching images by detected objects {}: page={} size={}", normalizedObjects, pageable.getPageNumber(), pageable.getPageSize());
 
         // Two-step search avoids the ambiguity of using a filtered fetch join on a collection.
-        List<Long> imageIds = imageRepository.findImageIdsByDetectedObjectNames(normalizedObjects);
-        if (imageIds.isEmpty()) {
+        Page<Long> imageIdPage = imageRepository.findImageIdsByDetectedObjectNames(normalizedObjects, pageable);
+        if (imageIdPage.isEmpty()) {
             log.info("No images matched detected objects {}", normalizedObjects);
-            return List.of();
+            return PagedImageResponse.from(Page.empty(pageable));
         }
 
-        List<ImageResponse> responses = imageRepository.findAllByIdInOrderByCreatedAtDesc(imageIds).stream().map(this::toResponse).toList();
-        log.info("Returning {} matched images for objects {}", responses.size(), normalizedObjects);
-        return responses;
+        PagedImageResponse response = toPagedResponse(imageIdPage, pageable);
+        log.info("Returning {} matched images for objects {}", response.content().size(), normalizedObjects);
+        return response;
+    }
+
+    private PagedImageResponse toPagedResponse(Page<Long> imageIdPage, Pageable pageable) {
+        if (imageIdPage.isEmpty()) {
+            return PagedImageResponse.from(Page.empty(pageable));
+        }
+
+        List<Long> imageIds = imageIdPage.getContent();
+        Map<Long, ImageEntity> imagesById = imageRepository.findAllByIdIn(imageIds)
+                .stream()
+                .collect(Collectors.toMap(ImageEntity::getId, Function.identity()));
+        List<ImageResponse> content = imageIds.stream()
+                .map(imagesById::get)
+                .filter(image -> image != null)
+                .map(this::toResponse)
+                .toList();
+
+        return PagedImageResponse.from(new PageImpl<>(content, pageable, imageIdPage.getTotalElements()));
     }
 
     @Transactional(readOnly = true)

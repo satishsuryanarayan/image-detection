@@ -68,13 +68,46 @@ class ImageControllerTest {
 
         mockMvc.perform(get("/images"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(org.hamcrest.Matchers.greaterThanOrEqualTo(2))))
-                .andExpect(jsonPath("$[?(@.imageUrl=='https://example.com/dog-park.png')]").exists())
-                .andExpect(jsonPath("$[?(@.imageUrl=='https://example.com/car-road.png')]").exists());
+                .andExpect(jsonPath("$.content", hasSize(org.hamcrest.Matchers.greaterThanOrEqualTo(2))))
+                .andExpect(jsonPath("$.content[?(@.imageUrl=='https://example.com/dog-park.png')]").exists())
+                .andExpect(jsonPath("$.content[?(@.imageUrl=='https://example.com/car-road.png')]").exists())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.first").value(true));
 
         mockMvc.perform(get("/images").param("objects", "dog"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].detectedObjects[0]").value("dog"));
+                .andExpect(jsonPath("$.content[0].detectedObjects[0]").value("dog"));
+    }
+
+    @Test
+    void shouldPaginateImages() throws Exception {
+        CreateImageRequest first = new CreateImageRequest();
+        first.setImageUrl("https://example.com/page-dog.png");
+        first.setEnableDetection(true);
+
+        CreateImageRequest second = new CreateImageRequest();
+        second.setImageUrl("https://example.com/page-car.png");
+        second.setEnableDetection(true);
+
+        mockMvc.perform(post("/images")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(first))).andExpect(status().isOk());
+
+        mockMvc.perform(post("/images")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(second))).andExpect(status().isOk());
+
+        mockMvc.perform(get("/images").param("page", "0").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.totalElements").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.totalPages").value(org.hamcrest.Matchers.greaterThanOrEqualTo(2)))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false));
     }
 
     @Test
@@ -90,9 +123,9 @@ class ImageControllerTest {
 
         mockMvc.perform(get("/images").param("objects", "dog"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].detectedObjects[0]").value("dog"))
-                .andExpect(jsonPath("$[0].detectedObjects[1]").value("tree"))
-                .andExpect(jsonPath("$[0].detectedObjects[2]").value("person"));
+                .andExpect(jsonPath("$.content[0].detectedObjects[0]").value("dog"))
+                .andExpect(jsonPath("$.content[0].detectedObjects[1]").value("tree"))
+                .andExpect(jsonPath("$.content[0].detectedObjects[2]").value("person"));
     }
 
     @Test

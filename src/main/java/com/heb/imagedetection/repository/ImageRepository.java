@@ -1,6 +1,8 @@
 package com.heb.imagedetection.repository;
 
 import com.heb.imagedetection.entity.ImageEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -28,24 +30,37 @@ public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
     @Query("select i from ImageEntity i order by i.createdAt desc")
     List<ImageEntity> findAll();
 
+    // First step of paginated listing: page parent ids only, avoiding collection-fetch pagination issues.
+    @Query(
+            value = "select i.id from ImageEntity i",
+            countQuery = "select count(i) from ImageEntity i"
+    )
+    Page<Long> findAllImageIds(Pageable pageable);
+
     // Used by GET /images/{imageId} so the full object list is available in one repository call.
     @EntityGraph(attributePaths = "detectedObjects")
     Optional<ImageEntity> findWithDetectedObjectsById(Long id);
 
     // First step of filtered search: determine which images match any requested lowercase object name.
-    @Query("""
+    @Query(
+            value = """
             select distinct i.id from ImageEntity i
             join i.detectedObjects d
             where d.objectName in :objects
-            """)
-    List<Long> findImageIdsByDetectedObjectNames(@Param("objects") List<String> objects);
+            """,
+            countQuery = """
+            select count(distinct i.id) from ImageEntity i
+            join i.detectedObjects d
+            where d.objectName in :objects
+            """
+    )
+    Page<Long> findImageIdsByDetectedObjectNames(@Param("objects") List<String> objects, Pageable pageable);
 
     // Second step of filtered search: load the full image graph for the matched ids.
     @EntityGraph(attributePaths = "detectedObjects")
     @Query("""
             select distinct i from ImageEntity i
             where i.id in :ids
-            order by i.createdAt desc
             """)
-    List<ImageEntity> findAllByIdInOrderByCreatedAtDesc(@Param("ids") List<Long> ids);
+    List<ImageEntity> findAllByIdIn(@Param("ids") List<Long> ids);
 }

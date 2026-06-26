@@ -1,0 +1,10 @@
+com/heb/imagedetection/detector/MockObjectDetectionServiceTest.class
+com/heb/imagedetection/service/ImageServiceTest.class
+com/heb/imagedetection/config/DetectorConfigurationTest.class
+com/heb/imagedetection/config/OpenApiConfigurationTest.class
+com/heb/imagedetection/entity/DetectedObjectEntityTest.class
+com/heb/imagedetection/detector/ImaggaObjectDetectionServiceTest$StubHttpResponse.class
+com/heb/imagedetection/detector/ImaggaObjectDetectionServiceTest.class
+com/heb/imagedetection/exception/GlobalExceptionHandlerTest.class
+com/heb/imagedetection/controller/ImageControllerTest.class
+com/heb/imagedetection/detector/ImaggaObjectDetectionServiceTest$StubHttpClient.class
