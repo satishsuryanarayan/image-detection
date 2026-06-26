@@ -31,11 +31,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/image_detection?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: image_user
       SPRING_DATASOURCE_PASSWORD: image_password
+      DETECTOR_PROVIDER: ${DETECTOR_PROVIDER:-mock}
     ports:
       - "8080:8080"
     secrets:
       - imagga.api-key
       - imagga.api-secret
+      - clarifai.pat
+      - clarifai.user-id
+      - clarifai.app-id
+      - clarifai.model-id
 
 volumes:
   mysql-data:
@@ -45,3 +50,11 @@ secrets:
     file: ./secrets/imagga.api-key
   imagga.api-secret:
     file: ./secrets/imagga.api-secret
+  clarifai.pat:
+    file: ./secrets/clarifai.pat
+  clarifai.user-id:
+    file: ./secrets/clarifai.user-id
+  clarifai.app-id:
+    file: ./secrets/clarifai.app-id
+  clarifai.model-id:
+    file: ./secrets/clarifai.model-id
