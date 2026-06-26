@@ -50,16 +50,17 @@ public class ImaggaObjectDetectionService implements ObjectDetectionService {
             long requestTimeoutSeconds,
             ObjectMapper objectMapper
     ) {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.threshold = threshold;
-        this.limit = limit;
-        this.objectMapper = objectMapper;
-        this.requestTimeout = Duration.ofSeconds(requestTimeoutSeconds);
-        this.httpClient = HttpClient.newBuilder()
-                // Connection timeout limits establishing the TCP/TLS connection.
+        this(
+                apiKey,
+                apiSecret,
+                threshold,
+                limit,
+                Duration.ofSeconds(requestTimeoutSeconds),
+                objectMapper,
+                HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(connectionTimeoutSeconds))
-                .build();
+                .build()
+        );
     }
 
     ImaggaObjectDetectionService(String apiKey, String apiSecret, int threshold, int limit, Duration requestTimeout, ObjectMapper objectMapper, HttpClient httpClient) {
@@ -67,9 +68,9 @@ public class ImaggaObjectDetectionService implements ObjectDetectionService {
         this.apiSecret = apiSecret;
         this.threshold = threshold;
         this.limit = limit;
+        this.requestTimeout = requestTimeout;
         this.objectMapper = objectMapper;
         this.httpClient = httpClient;
-        this.requestTimeout = requestTimeout;
     }
 
     @Override
