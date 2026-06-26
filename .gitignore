@@ -21,3 +21,5 @@ src/main/resources/application-local.yml
 # OS/editor temp files
 *.swp
 *.swo
+
+.ai/
