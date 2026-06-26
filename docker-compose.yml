@@ -1,0 +1,47 @@
+services:
+  mysql:
+    build:
+      context: ./mysql
+    container_name: image-detection-mysql
+    environment:
+      MYSQL_DATABASE: image_detection
+      MYSQL_USER: image_user
+      MYSQL_PASSWORD: image_password
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+    container_name: image-detection-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/image_detection?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: image_user
+      SPRING_DATASOURCE_PASSWORD: image_password
+    ports:
+      - "8080:8080"
+    secrets:
+      - imagga.api-key
+      - imagga.api-secret
+
+volumes:
+  mysql-data:
+
+secrets:
+  imagga.api-key:
+    file: ./secrets/imagga.api-key
+  imagga.api-secret:
+    file: ./secrets/imagga.api-secret
