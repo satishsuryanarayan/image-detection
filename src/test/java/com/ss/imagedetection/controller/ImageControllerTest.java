@@ -1,16 +1,24 @@
 package com.ss.imagedetection.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ss.imagedetection.detector.ObjectDetectionService;
 import com.ss.imagedetection.dto.CreateImageRequest;
+import com.ss.imagedetection.repository.ImageRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,11 +42,24 @@ class ImageControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ImageRepository imageRepository;
+
+    @MockBean
+    private ObjectDetectionService objectDetectionService;
+
+    @BeforeEach
+    void setUp() {
+        imageRepository.deleteAll();
+        reset(objectDetectionService);
+    }
+
     @Test
     void shouldCreateImageAndGenerateLabel() throws Exception {
         CreateImageRequest request = new CreateImageRequest();
         request.setImageUrl("https://example.com/cat-photo.jpg");
         request.setEnableDetection(true);
+        stubDetection(request.getImageUrl(), "cat");
 
         mockMvc.perform(post("/images")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -53,10 +74,12 @@ class ImageControllerTest {
         CreateImageRequest first = new CreateImageRequest();
         first.setImageUrl("https://example.com/dog-park.png");
         first.setEnableDetection(true);
+        stubDetection(first.getImageUrl(), "dog");
 
         CreateImageRequest second = new CreateImageRequest();
         second.setImageUrl("https://example.com/car-road.png");
         second.setEnableDetection(true);
+        stubDetection(second.getImageUrl(), "car");
 
         mockMvc.perform(post("/images")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -86,10 +109,12 @@ class ImageControllerTest {
         CreateImageRequest first = new CreateImageRequest();
         first.setImageUrl("https://example.com/page-dog.png");
         first.setEnableDetection(true);
+        stubDetection(first.getImageUrl(), "dog");
 
         CreateImageRequest second = new CreateImageRequest();
         second.setImageUrl("https://example.com/page-car.png");
         second.setEnableDetection(true);
+        stubDetection(second.getImageUrl(), "car");
 
         mockMvc.perform(post("/images")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -115,14 +140,17 @@ class ImageControllerTest {
         CreateImageRequest first = new CreateImageRequest();
         first.setImageUrl("https://example.com/bike-dog-one.png");
         first.setEnableDetection(true);
+        stubDetection(first.getImageUrl(), "bike", "dog");
 
         CreateImageRequest second = new CreateImageRequest();
         second.setImageUrl("https://example.com/bike-car-two.png");
         second.setEnableDetection(true);
+        stubDetection(second.getImageUrl(), "bike", "car");
 
         CreateImageRequest third = new CreateImageRequest();
         third.setImageUrl("https://example.com/bike-tree-three.png");
         third.setEnableDetection(true);
+        stubDetection(third.getImageUrl(), "bike", "tree");
 
         mockMvc.perform(post("/images")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -156,6 +184,7 @@ class ImageControllerTest {
         CreateImageRequest request = new CreateImageRequest();
         request.setImageUrl("https://example.com/dog-tree-person.png");
         request.setEnableDetection(true);
+        stubDetection(request.getImageUrl(), "dog", "tree", "person");
 
         mockMvc.perform(post("/images")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -208,5 +237,9 @@ class ImageControllerTest {
     void shouldReturnNotFoundForUnknownId() throws Exception {
         mockMvc.perform(get("/images/9999"))
                 .andExpect(status().isNotFound());
+    }
+
+    private void stubDetection(String imageUrl, String... detectedObjects) {
+        when(objectDetectionService.detectObjects(imageUrl)).thenReturn(List.of(detectedObjects));
     }
 }
