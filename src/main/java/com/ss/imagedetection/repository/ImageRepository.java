@@ -42,11 +42,13 @@ public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
     Optional<ImageEntity> findWithDetectedObjectsById(Long id);
 
     // First step of filtered search: determine which images match any requested lowercase object name.
+    // Use GROUP BY instead of DISTINCT so MySQL can apply pageable ORDER BY clauses such as createdAt.
     @Query(
             value = """
-            select distinct i.id from ImageEntity i
+            select i.id from ImageEntity i
             join i.detectedObjects d
             where d.objectName in :objects
+            group by i.id, i.createdAt
             """,
             countQuery = """
             select count(distinct i.id) from ImageEntity i

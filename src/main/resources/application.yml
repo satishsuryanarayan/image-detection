@@ -25,6 +25,9 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
 
+detector:
+  provider: ${DETECTOR_PROVIDER:mock}
+
 imagga:
   api-key: ${IMAGGA_API_KEY:}
   api-secret: ${IMAGGA_API_SECRET:}
@@ -32,3 +35,12 @@ imagga:
   limit: ${IMAGGA_LIMIT:-1}
   connection-timeout-seconds: ${IMAGGA_CONNECTION_TIMEOUT_SECONDS:1}
   request-timeout-seconds: ${IMAGGA_REQUEST_TIMEOUT_SECONDS:2}
+
+clarifai:
+  pat: ${CLARIFAI_PAT:}
+  user-id: ${CLARIFAI_USER_ID:clarifai}
+  app-id: ${CLARIFAI_APP_ID:main}
+  model-id: ${CLARIFAI_MODEL_ID:general-image-recognition}
+  min-confidence: ${CLARIFAI_MIN_CONFIDENCE:0.70}
+  connection-timeout-seconds: ${CLARIFAI_CONNECTION_TIMEOUT_SECONDS:1}
+  request-timeout-seconds: ${CLARIFAI_REQUEST_TIMEOUT_SECONDS:5}

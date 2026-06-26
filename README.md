@@ -22,10 +22,11 @@ Spring Boot REST API for ingesting image URLs, optionally detecting objects, per
 - integration tests using Spring Boot Test and MockMvc
 
 ## Object Detection Strategy
-The application supports two detector implementations:
+The application supports three detector implementations selected with `DETECTOR_PROVIDER`:
 
-1. **Imagga-backed detection** when `IMAGGA_API_KEY` and `IMAGGA_API_SECRET` are configured
-2. **A default mock detector** when credentials are not configured
+1. **Mock detection** with `DETECTOR_PROVIDER=mock` for local demos and tests
+2. **Imagga-backed detection** with `DETECTOR_PROVIDER=imagga`
+3. **Clarifai-backed detection** with `DETECTOR_PROVIDER=clarifai`
 
 The mock detector derives object names from URL keywords such as `cat`, `dog`, `car`, and `person`, which keeps the app self-contained for tests and local demos.
 
@@ -110,17 +111,29 @@ Set these in the same terminal before starting the application:
 export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/image_detection
 export SPRING_DATASOURCE_USERNAME=image_user
 export SPRING_DATASOURCE_PASSWORD=image_password
+export DETECTOR_PROVIDER=mock
+
+# Optional: Imagga detector
 export IMAGGA_API_KEY=your_imagga_api_key
 export IMAGGA_API_SECRET=your_imagga_api_secret
 export IMAGGA_THRESHOLD=70
 export IMAGGA_LIMIT=-1
 export IMAGGA_CONNECTION_TIMEOUT_SECONDS=1
 export IMAGGA_REQUEST_TIMEOUT_SECONDS=2
+
+# Optional: Clarifai detector
+export CLARIFAI_PAT=your_clarifai_pat
+export CLARIFAI_USER_ID=clarifai
+export CLARIFAI_APP_ID=main
+export CLARIFAI_MODEL_ID=general-image-recognition
+export CLARIFAI_MIN_CONFIDENCE=0.70
+export CLARIFAI_CONNECTION_TIMEOUT_SECONDS=1
+export CLARIFAI_REQUEST_TIMEOUT_SECONDS=5
 ```
 
-If the Imagga credentials are omitted, the application automatically falls back to the built-in mock detector.
+`DETECTOR_PROVIDER` defaults to `mock`. Set it to `imagga` or `clarifai` to use an external detector.
 
-> Note: keep your real API key and secret in environment variables or a local `.env`/run configuration. Do not commit them to source control.
+> Note: keep real API keys, PATs, and secrets in environment variables or a local `.env`/run configuration. Do not commit them to source control.
 
 ### 3. Run the Spring Boot app
 ```bash
@@ -132,26 +145,83 @@ Docker Compose builds and starts both services:
 - API: `http://localhost:8080`
 - MySQL: `localhost:3306`
 
-The compose file expects two local secret files for Imagga credentials. Leave them empty to use the mock detector, or put real credentials in them to use Imagga.
+The compose file expects local secret files for Imagga and Clarifai. Leave provider-specific files empty when not using that provider.
 
 ### Option A: use mock detection
 ```bash
 mkdir -p secrets
 touch secrets/imagga.api-key secrets/imagga.api-secret
-docker compose up --build
+touch secrets/clarifai.pat secrets/clarifai.user-id secrets/clarifai.app-id secrets/clarifai.model-id
+DETECTOR_PROVIDER=mock docker compose up --build
 ```
 
-### Option B: use Imagga detection
+### Option B: use Clarifai detection
+```bash
+mkdir -p secrets
+touch secrets/imagga.api-key secrets/imagga.api-secret
+printf 'your_clarifai_pat' > secrets/clarifai.pat
+printf 'clarifai' > secrets/clarifai.user-id
+printf 'main' > secrets/clarifai.app-id
+printf 'general-image-recognition' > secrets/clarifai.model-id
+DETECTOR_PROVIDER=clarifai docker compose up --build
+```
+
+The example model path `clarifai/main/general-image-recognition` is intended for Clarifai's general image recognition model. If your Clarifai account or model page shows different user, app, or model IDs, use those values instead.
+
+### Option C: use Imagga detection
 ```bash
 mkdir -p secrets
 printf 'your_imagga_api_key' > secrets/imagga.api-key
 printf 'your_imagga_api_secret' > secrets/imagga.api-secret
-docker compose up --build
+touch secrets/clarifai.pat secrets/clarifai.user-id secrets/clarifai.app-id secrets/clarifai.model-id
+DETECTOR_PROVIDER=imagga docker compose up --build
 ```
 
-Spring Boot imports `/run/secrets/` as a config tree, so the mounted files are read as `imagga.api-key` and `imagga.api-secret`.
+Spring Boot imports `/run/secrets/` as a config tree, so the mounted files are read as properties such as `imagga.api-key`, `imagga.api-secret`, `clarifai.pat`, `clarifai.user-id`, `clarifai.app-id`, and `clarifai.model-id`.
 
 > Important: `secrets/` is ignored by this repository's `.gitignore`. Keep real credentials out of source control.
+
+## Detector Configuration
+
+### Provider Selection
+| Environment variable | Spring property | Default | Description |
+| --- | --- | ---: | --- |
+| `DETECTOR_PROVIDER` | `detector.provider` | `mock` | Detector implementation to use: `mock`, `imagga`, or `clarifai`. |
+
+### Clarifai Configuration
+When `DETECTOR_PROVIDER=clarifai`, these settings control Clarifai model calls:
+
+| Environment variable | Spring property / Docker secret | Default | Description |
+| --- | --- | ---: | --- |
+| `CLARIFAI_PAT` | `clarifai.pat` | empty | Clarifai personal access token. Required for Clarifai mode. |
+| `CLARIFAI_USER_ID` | `clarifai.user-id` | `clarifai` | Clarifai user/owner id for the selected model. |
+| `CLARIFAI_APP_ID` | `clarifai.app-id` | `main` | Clarifai app id for the selected model. |
+| `CLARIFAI_MODEL_ID` | `clarifai.model-id` | `general-image-recognition` | Clarifai model id. |
+| `CLARIFAI_MIN_CONFIDENCE` | `clarifai.min-confidence` | `0.70` | Minimum concept confidence persisted as a detected object. |
+| `CLARIFAI_CONNECTION_TIMEOUT_SECONDS` | `clarifai.connection-timeout-seconds` | `1` | Timeout for establishing the HTTP connection to Clarifai. |
+| `CLARIFAI_REQUEST_TIMEOUT_SECONDS` | `clarifai.request-timeout-seconds` | `5` | Timeout for the full Clarifai request/response wait. |
+
+### Imagga Configuration
+When Imagga credentials are configured, these optional settings control tagging behavior and upstream timeouts:
+
+| Environment variable | Spring property | Default | Description |
+| --- | --- | ---: | --- |
+| `IMAGGA_THRESHOLD` | `imagga.threshold` | `70` | Minimum confidence threshold sent to Imagga. |
+| `IMAGGA_LIMIT` | `imagga.limit` | `-1` | Maximum number of tags requested from Imagga; `-1` uses Imagga's default behavior. |
+| `IMAGGA_CONNECTION_TIMEOUT_SECONDS` | `imagga.connection-timeout-seconds` | `1` | Timeout for establishing the HTTP connection to Imagga. |
+| `IMAGGA_REQUEST_TIMEOUT_SECONDS` | `imagga.request-timeout-seconds` | `2` | Timeout for the full Imagga request/response wait. |
+
+### External Detector Upstream Error Handling
+When object detection is backed by Imagga or Clarifai, upstream failures are mapped to API responses as follows:
+
+| Upstream condition | API status |
+| --- | ---: |
+| External detector returns a `4xx` client error | `400 Bad Request` |
+| External detector returns a `5xx` server error | `502 Bad Gateway` |
+| External detector returns malformed or corrupted response data | `502 Bad Gateway` |
+| External detector request times out before a response is received | `504 Gateway Timeout` |
+| External detector is unavailable or the connection cannot be established | `503 Service Unavailable` |
+| Any remaining unexpected application failure | `500 Internal Server Error` |
 
 ## Build Docker Images Manually
 
@@ -164,28 +234,6 @@ MySQL image:
 ```bash
 docker build -t image-detection-mysql ./mysql
 ```
-
-## Imagga Configuration
-When Imagga credentials are configured, these optional settings control tagging behavior and upstream timeouts:
-
-| Environment variable | Spring property | Default | Description |
-| --- | --- | ---: | --- |
-| `IMAGGA_THRESHOLD` | `imagga.threshold` | `70` | Minimum confidence threshold sent to Imagga. |
-| `IMAGGA_LIMIT` | `imagga.limit` | `-1` | Maximum number of tags requested from Imagga; `-1` uses Imagga's default behavior. |
-| `IMAGGA_CONNECTION_TIMEOUT_SECONDS` | `imagga.connection-timeout-seconds` | `1` | Timeout for establishing the HTTP connection to Imagga. |
-| `IMAGGA_REQUEST_TIMEOUT_SECONDS` | `imagga.request-timeout-seconds` | `2` | Timeout for the full Imagga request/response wait. |
-
-## Imagga Upstream Error Handling
-When object detection is backed by Imagga, upstream failures are mapped to API responses as follows:
-
-| Imagga/upstream condition | API status |
-| --- | ---: |
-| Imagga returns a `4xx` client error | `400 Bad Request` |
-| Imagga returns a `5xx` server error | `502 Bad Gateway` |
-| Imagga returns malformed or corrupted response data | `502 Bad Gateway` |
-| The Imagga request times out before a response is received | `504 Gateway Timeout` |
-| Imagga is unavailable or the connection cannot be established | `503 Service Unavailable` |
-| Any remaining unexpected application failure | `500 Internal Server Error` |
 
 ## Run Tests
 ```bash
@@ -213,7 +261,7 @@ http://localhost:8080/v3/api-docs
 
 ## Project Structure
 ```text
-src/main/java/com/heb/imagedetection
+src/main/java/com/ss/imagedetection
 ├── config
 ├── controller
 ├── detector

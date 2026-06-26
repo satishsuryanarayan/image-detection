@@ -111,6 +111,47 @@ class ImageControllerTest {
     }
 
     @Test
+    void shouldPaginateFilteredImageSearch() throws Exception {
+        CreateImageRequest first = new CreateImageRequest();
+        first.setImageUrl("https://example.com/bike-dog-one.png");
+        first.setEnableDetection(true);
+
+        CreateImageRequest second = new CreateImageRequest();
+        second.setImageUrl("https://example.com/bike-car-two.png");
+        second.setEnableDetection(true);
+
+        CreateImageRequest third = new CreateImageRequest();
+        third.setImageUrl("https://example.com/bike-tree-three.png");
+        third.setEnableDetection(true);
+
+        mockMvc.perform(post("/images")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(first))).andExpect(status().isOk());
+
+        mockMvc.perform(post("/images")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(second))).andExpect(status().isOk());
+
+        mockMvc.perform(post("/images")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(third))).andExpect(status().isOk());
+
+        mockMvc.perform(get("/images")
+                        .param("objects", "bike")
+                        .param("page", "1")
+                        .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(false))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.content[0].detectedObjects[?(@=='bike')]").exists());
+    }
+
+    @Test
     void shouldReturnFullDetectedObjectsForMatchedImageSearch() throws Exception {
         CreateImageRequest request = new CreateImageRequest();
         request.setImageUrl("https://example.com/dog-tree-person.png");
