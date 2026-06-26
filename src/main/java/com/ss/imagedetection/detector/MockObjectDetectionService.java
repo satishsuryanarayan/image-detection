@@ -1,38 +1,40 @@
 package com.ss.imagedetection.detector;
 
-import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.Random;
 
 /**
- * Deterministic local detector used for demo and interview purposes.
- * It infers object names from keywords in the image URL so the application works
- * without external API credentials.
+ * Local detector used for demo and interview purposes.
+ * It randomly picks known object names so the application works without external API credentials.
  */
 public class MockObjectDetectionService implements ObjectDetectionService {
 
-    private static final List<String> KNOWN_OBJECTS = List.of(
-            "cat", "dog", "car", "tree", "person", "bike", "bird", "flower"
+    static final List<String> KNOWN_OBJECTS = List.of(
+            "cat", "dog", "car", "tree", "person", "bike", "bird", "flower",
+            "apple", "banana", "chair", "table", "phone", "laptop", "book", "cup",
+            "bottle", "bus", "truck", "house", "road", "mountain", "beach", "boat"
     );
+
+    private static final int MIN_DETECTED_OBJECTS = 1;
+    private static final int MAX_DETECTED_OBJECTS = 3;
+
+    private final Random random;
+
+    public MockObjectDetectionService() {
+        this(new Random());
+    }
+
+    MockObjectDetectionService(Random random) {
+        this.random = random;
+    }
 
     @Override
     public List<String> detectObjects(String imageUrl) {
-        // Preserve insertion order and prevent duplicate detections for the same image.
-        String normalized = imageUrl.toLowerCase(Locale.ROOT);
-        Set<String> detected = new LinkedHashSet<>();
-
-        for (String candidate : KNOWN_OBJECTS) {
-            if (normalized.contains(candidate)) {
-                detected.add(candidate);
-            }
-        }
-
-        if (detected.isEmpty()) {
-            detected.addAll(Arrays.asList("image", "unknown-object"));
-        }
-
-        return List.copyOf(detected);
+        List<String> candidates = new ArrayList<>(KNOWN_OBJECTS);
+        Collections.shuffle(candidates, random);
+        int detectedObjectCount = random.nextInt(MAX_DETECTED_OBJECTS - MIN_DETECTED_OBJECTS + 1) + MIN_DETECTED_OBJECTS;
+        return List.copyOf(candidates.subList(0, detectedObjectCount));
     }
 }
