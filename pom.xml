@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.heb</groupId>
+    <groupId>com.ss</groupId>
     <artifactId>image-detection-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>image-detection-api</name>
