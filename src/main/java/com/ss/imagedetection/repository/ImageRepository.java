@@ -41,8 +41,8 @@ public interface ImageRepository extends JpaRepository<ImageEntity, Long> {
     @EntityGraph(attributePaths = "detectedObjects")
     Optional<ImageEntity> findWithDetectedObjectsById(Long id);
 
-    // First step of filtered search: determine which images match any requested lowercase object name.
-    // Use GROUP BY instead of DISTINCT so MySQL can apply pageable ORDER BY clauses such as createdAt.
+    // The first step of filtered search: determine which images match any requested lowercase object name.
+    // Use GROUP BY instead of DISTINCT, so MySQL can apply pageable ORDER BY clauses such as createdAt.
     @Query(
             value = """
             select i.id from ImageEntity i

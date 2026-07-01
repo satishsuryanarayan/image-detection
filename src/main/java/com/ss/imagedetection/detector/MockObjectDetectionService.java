@@ -7,7 +7,7 @@ import java.util.Random;
 
 /**
  * Local detector used for demo and interview purposes.
- * It randomly picks known object names so the application works without external API credentials.
+ * It randomly picks known object names, so the application works without external API credentials.
  */
 public class MockObjectDetectionService implements ObjectDetectionService {
 
