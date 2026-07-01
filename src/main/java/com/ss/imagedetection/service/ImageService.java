@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -109,7 +110,7 @@ public class ImageService {
                 .collect(Collectors.toMap(ImageEntity::getId, Function.identity()));
         List<ImageResponse> content = imageIds.stream()
                 .map(imagesById::get)
-                .filter(image -> image != null)
+                .filter(Objects::nonNull)
                 .map(this::toResponse)
                 .toList();
 
